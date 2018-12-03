@@ -1,0 +1,72 @@
+create Database dataCollection;
+Use dataCollection;
+DROP TABLE if exists airValues;
+
+/* Command to create table on top of azure data lake location */
+CREATE EXTERNAL TABLE airValues(
+Latitude STRING,
+Longitude STRING,
+DateObserved STRING,
+ParameterName STRING,
+AQI STRING,
+CategoryNumber STRING
+)
+Partitioned by(AQIDATE STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE LOCATION 'adl://aqidatastorgae.azuredatalakestore.net/Test/AQIDATA';
+
+
+/* Command to create table which performs typecasting and data cleaning */
+
+Create table calaqi(
+latitude double,              	                    
+longitude double,              	                    
+dateobserved string,           	                    
+parametername string,              	                    
+parametervalue int,                 	                    
+categorynumber int,                 	                    
+categoryname string
+)
+Partitioned by(collection_date date)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+Stored as textfile
+
+
+
+/* Command to filter pm2.5 data into a table */
+
+CREATE EXTERNAL TABLE calaqi_pm25(
+dateobserved string,
+parametervalue int, 
+categorynumber int, 
+categoryname string,
+collection_date string)
+ROW FORMAT DELIMITED 
+  FIELDS TERMINATED BY ',' 
+STORED AS TEXTFILE
+LOCATION 'hdfs://sandbox-hdp.hortonworks.com:8020/apps/hive/warehouse/datacollection.db/calaqi_pm25'
+
+/* Command to filter ozone data into a table */
+
+CREATE EXTERNAL TABLE calaqi_ozone(
+dateobserved string,
+parametervalue int, 
+categorynumber int, 
+categoryname string,
+collection_date string)
+ROW FORMAT DELIMITED 
+  FIELDS TERMINATED BY ',' 
+STORED AS TEXTFILE
+LOCATION 'hdfs://sandbox-hdp.hortonworks.com:8020/apps/hive/warehouse/datacollection.db/calaqi_ozone'
+
+/*Command to create table which store AQI value for that particular day */
+Create table calaqi_value(
+Dateobserved string,
+Parametervalue int,
+Categorynumber int,
+Categoryname string)
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ',' 
+STORED AS TEXTFILE
+LOCATION 'hdfs://sandbox-hdp.hortonworks.com:8020/apps/hive/warehouse/datacollection.db/calaqi_value'
+
