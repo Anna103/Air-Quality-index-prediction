@@ -1,0 +1,83 @@
+/* Inserting data into calaqi table */
+Insert overwrite table calaqi partition(collection_date) 
+select 
+cast(regexp_replace(latitude,'\\"','')as double) as latitude,
+cast(regexp_replace(longitude,'\\"','')as double) as longitude,
+cast(regexp_replace(dateobserved,'\\"','')as string) as dateobserved,
+cast(regexp_replace(parametername,'\\"','')as string) as parametername,
+cast(regexp_replace(aqi,'\\"','')as int) as aqi,
+cast(regexp_replace(categorynumber,'\\"','') as int) as categorynumber,
+Case 
+when categorynumber like '%1%' then 'Good'
+when categorynumber like '%2%' then 'Moderate'
+when categorynumber like '%3%' then 'Unhealthy for sensitive group'
+when categorynumber like '%4%' then 'Unhealthy'
+end, 
+(from_unixtime(unix_timestamp(regexp_replace(dateobserved,'\\"',''),"yyyy-MM-dd'T'HH:mm"),"yyyyMMdd")) as collection_date
+from airvalues
+
+
+/* Inserting data into calaqi_pm25 table */
+
+Insert overwrite table calaqi_pm25
+Select
+(from_unixtime(unix_timestamp(regexp_replace(dateobserved,'\\"',''),"yyyy-MM-dd'T'HH:mm"),"yyyyMMdd")) as dateobserved,
+max(parametervalue) as parametervalue,
+Case 
+when max(parametervalue) <51 then 1
+when max(parametervalue) >50 and  max(parametervalue) < 101 then 2
+when max(parametervalue) >100 and  max(parametervalue) < 151 then 3
+when max(parametervalue) >150 then 4
+end, 
+Case 
+when max(parametervalue) <51 then 'Good'
+when max(parametervalue) >50 and  max(parametervalue) < 101 then 'Moderate'
+when max(parametervalue) >100 and  max(parametervalue) < 151 then 'Unhealthy for sensitive group'
+when max(parametervalue) >150 then 'Unhealthy'
+end, 
+collection_date
+From calaqi where parametername='PM2.5' group by (from_unixtime(unix_timestamp(regexp_replace(date observed,'\\"',''),"yyyy-MM-dd'T'HH:mm"),"yyyyMMdd")),collection_date;
+
+
+/* Inserting data into calaqi_ozone table */
+
+Insert overwrite table calaqi_ozone
+Select
+(from_unixtime(unix_timestamp(regexp_replace(dateobserved,'\\"',''),"yyyy-MM-dd'T'HH:mm"),"yyyyMMdd")) as dateobserved,
+max(parametervalue) as parametervalue,
+Case 
+when max(parametervalue) <51 then 1
+when max(parametervalue) >50 and  max(parametervalue) < 101 then 2
+when max(parametervalue) >100 and  max(parametervalue) < 151 then 3
+when max(parametervalue) >150 then 4
+end, 
+Case 
+when max(parametervalue) <51 then 'Good'
+when max(parametervalue) >50 and  max(parametervalue) < 101 then 'Moderate'
+when max(parametervalue) >100 and  max(parametervalue) < 151 then 'Unhealthy for sensitive group'
+when max(parametervalue) >150 then 'Unhealthy'
+end, 
+collection_date
+From calaqi where parametername='OZONE' group by (from_unixtime(unix_timestamp(regexp_replace(date observed,'\\"',''),"yyyy-MM-dd'T'HH:mm"),"yyyyMMdd")),collection_date;
+
+
+/* Inserting Data into Calaqi_value table */
+
+Insert into calaqi_value
+select o.dateobserved,
+greatest(o.parametervalue,p.parametervalue),
+Case 
+when greatest(o.parametervalue,p.parametervalue) <51 then 1
+when greatest(o.parametervalue,p.parametervalue) >50 and  greatest(o.parametervalue,p.parametervalue) < 101 then 2
+when greatest(o.parametervalue,p.parametervalue) >100 and  greatest(o.parametervalue,p.parametervalue) < 151 then 3
+when greatest(o.parametervalue,p.parametervalue) >150 then 4
+end, 
+Case 
+when greatest(o.parametervalue,p.parametervalue) <51 then 'Good'
+when greatest(o.parametervalue,p.parametervalue) >50 and  greatest(o.parametervalue,p.parametervalue)< 101 then 'Moderate'
+when greatest(o.parametervalue,p.parametervalue) >100 and  greatest(o.parametervalue,p.parametervalue) < 151 then 'Unhealthy for sensitive group'
+when greatest(o.parametervalue,p.parametervalue) >150 then 'Unhealthy'
+end 
+ from calaqi_ozone o full outer join calaqi_pm25 p on (o.dateobserved=p.dateobserved);
+
+
